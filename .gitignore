@@ -1,0 +1,6 @@
+.env
+target
+.visivo_cache
+venv/
+.vscode/
+dist/

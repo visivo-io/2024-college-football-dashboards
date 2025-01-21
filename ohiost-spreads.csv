@@ -1,0 +1,17 @@
+date,opponent,betting_spread,location,result,opponent_score,ohio_state_score,final_spread,season_type
+2024-08-31,AKRON Zips,-48.5,Home,W,6,52,-46,regular-season
+2024-09-07,WMICH Broncos,-37.5,Home,W,0,56,-56,regular-season
+2024-09-21,MARSH Thundering Herd,-40.5,Home,W,14,49,-35,regular-season
+2024-09-28,MST Spartans,-23.5,Away,W,7,38,-31,regular-season
+2024-10-05,IOWA Hawkeyes,-17,Home,W,7,35,-28,regular-season
+2024-10-12,ORE Ducks,-3.5,Away,L,32,31,1,regular-season
+2024-10-26,NEBR Cornhuskers,-25,Home,W,17,21,-4,regular-season
+2024-11-02,PENNST Nittany Lions,-3,Away,W,13,20,-7,regular-season
+2024-11-09,PUR Boilermakers,-37.5,Home,W,0,45,-45,regular-season
+2024-11-16,NW Wildcats,-28,Away,W,7,31,-24,regular-season
+2024-11-23,IND Hoosiers,-10.5,Home,W,15,38,-23,regular-season
+2024-11-30,❌ICH Wolverines,-19.5,Home,L,13,10,3,regular-season
+2024-12-21,TENN Volunteers,6.5,Home,W,17,42,-25,post-season
+2025-01-01,ORE Ducks,-2.5,Away,W,21,41,-20,post-season
+2025-01-10,TX Longhorns,-5.5,Away,W,14,28,-14,post-season
+2025-01-20,ND Fighting Irish,-8.5,Neutral,,,,,post-season

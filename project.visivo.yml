@@ -1,0 +1,251 @@
+path: project
+name: college-football
+
+defaults: 
+  source_name: ohiost-season
+
+sources:
+  - name: ohiost-season
+    type: duckdb
+    database: ohiost-games.duckdb
+    db_schema: main
+
+models:
+  - name: ohiost-games
+    sql: select * from main.model
+
+traces:
+  - name: betting-spreads-per-game
+    model: ${ref(ohiost-games)}
+    cohort_on: "'Betting Markets'"
+    props: 
+      type: scatter
+      x:
+        - query(season_type)
+        - query(split_part(opponent, ' ', 1) || case when season_type = 'regular-season' then ' ' else '' end) 
+      ids: query(split_part(opponent, ' ', 1) || season_type)  
+      y: query(betting_spread)
+      text: query(split_part(opponent, ' ', 2))  
+      hovertemplate: "%{text}<br>Betting Spread: %{y}"
+      line: 
+        shape: spline 
+        color: "#ba0c2f"
+      fill: none
+    order_by:
+      - query(date::date asc)
+
+  - name: realized-spreads-per-game
+    model: ${ref(ohiost-games)}
+    cohort_on: "'Final Outcome'"
+    props: 
+      type: scatter
+      x: 
+        - query(season_type)
+        - query(split_part(opponent, ' ', 1) || case when season_type = 'regular-season' then ' ' else '' end) 
+      y: query(COALESCE(final_spread, null) )
+      text: query( CASE WHEN final_spread < betting_spread then 'Covered vs ' else 'Did Not Cover vs ' end || split_part(opponent, ' ', 2))  
+      hovertemplate: "%{text}<br>Score Differential: %{y}<extra></extra>"
+      line: 
+        shape: spline  
+        color: "#a7b1b7"
+      fill: tonexty
+      marker:
+        color: query(case when final_spread < betting_spread then '#a7b1b7' else '#000000' end ) 
+    order_by:
+      - query(date::date asc)
+
+  - name: losses-highlight
+    model: ${ref(ohiost-games)}
+    cohort_on: "'Losses'"
+    props: 
+      type: scatter
+      mode: markers
+      x: 
+        - query(season_type)
+        - query(split_part(opponent, ' ', 1) || case when season_type = 'regular-season' then ' ' else '' end) 
+      y: query(CASE WHEN final_spread > 0 THEN final_spread ELSE NULL END)
+      text: query(split_part(opponent, ' ', 2))
+      marker:
+        symbol: 'x'
+        size: 12
+        color: 'red'
+        line:
+          width: 2
+          color: 'darkred'
+      hovertemplate: "Loss vs %{text}<br>Score Differential: %{y}"
+    order_by:
+      - query(date::date asc)
+
+  - name: percent-of-games-favored
+    model: ${ref(ohiost-games)}
+    columns: 
+      perc_games_favored: avg(case when betting_spread > 0 then 0 else 1 end)
+    props: 
+      type: indicator
+      value: column(perc_games_favored)[0]
+      number: 
+        valueformat: ".1%"
+        font:
+          size: 60
+  
+  - name: percent-of-games-beat-spread
+    model: ${ref(ohiost-games)}
+    columns: 
+      perc_games_beat_spread: avg(case when final_spread < betting_spread then 1 else 0 end)
+    props: 
+      type: indicator
+      value: column(perc_games_beat_spread)[0]
+      number: 
+        valueformat: ".1%"
+        font:
+          size: 60
+        
+  - name: avg-victory-margin
+    model: ${ref(ohiost-games)}
+    columns: 
+      avg_victory: avg(case when final_spread < 0 then abs(final_spread) else null end)
+    props: 
+      type: indicator
+      value: column(avg_victory)[0]
+      number: 
+        valueformat: ".1f"
+        suffix: "<sub>pts</sub>"
+        font:
+          size: 60
+
+  - name: avg-loss-margin
+    model: ${ref(ohiost-games)}
+    columns: 
+      avg_loss: avg(case when final_spread > 0 then final_spread else null end)
+    props: 
+      type: indicator
+      value: column(avg_loss)[0]
+      number: 
+        valueformat: ".1f"
+        suffix: "<sub>pts</sub>"
+        font:
+          size: 60
+  
+  - name: box-betting-spreads
+    model: ${ref(ohiost-games)}
+    cohort_on: "'Spreads'"
+    props: 
+      type: box 
+      y: query(betting_spread)
+      text: query(opponent)
+      boxpoints: "all"
+      jitter: 1
+      pointpos: -1.1
+      marker: 
+        color: '#ba0c2f'
+      hovertemplate: "<b>%{text}</b><br>Spread: %{y}<extra></extra>"
+  - name: box-realized-spreads
+    model: ${ref(ohiost-games)}
+    cohort_on: "'Point Differential'"
+    props: 
+      type: box 
+      y: query(final_spread)
+      text: query(opponent)
+      boxpoints: "all"
+      jitter: 1
+      pointpos: -1.1
+      marker: 
+        color: '#a7b1b7'
+      hovertemplate: "<b>%{text}</b><br>Differential: %{y}<extra></extra>"
+
+charts:
+  - name: spreads-per-game-chart
+    traces:
+      - ${ref(betting-spreads-per-game)}
+      - ${ref(realized-spreads-per-game)}
+      - ${ref(losses-highlight)}
+    layout: 
+      title: 
+        text: <b>Spreads & Scores</b>
+      xaxis:
+        categoryorder: trace
+      mode: lines
+      legend:
+        orientation: h
+        xanchor: center
+        yanchor: bottom
+        x: .5 
+        y: 1.01
+      margin: 
+        b: 60
+  - name: percent-of-games-favored-chart
+    traces:
+      - ${ref(percent-of-games-favored)}
+    layout: 
+      title: 
+        text: "<b>Games Favored</b><br><sub>one game as an underdog vs the vols</sub>"
+  
+  - name: percent-of-games-beat-spread-chart
+    traces:
+      - ${ref(percent-of-games-beat-spread)}
+    layout: 
+      title: 
+        text: "<b>Bucked the Spread</b><br><sub>% of games where OSU beat the spread</sub>"
+  
+  - name: avg-victory-margin-chart
+    traces:
+      - ${ref(avg-victory-margin)}
+    layout: 
+      title: 
+        text: "<b>Avg Victory Margin</b><br><sub>points scored above opponent</sub>"
+  
+  - name: avg-loss-margin-chart
+    traces:
+      - ${ref(avg-loss-margin)}
+    layout: 
+      title: 
+        text: "<b>Avg Loss Margin</b><br><sub>points scored below opponent</sub>"
+
+  - name: box-plots
+    traces:
+      - ${ref(box-betting-spreads)}
+      - ${ref(box-realized-spreads)}
+    layout: 
+      title: 
+        text: <b>Statistics</b>
+        
+      yaxis: 
+        showline: false
+        showticklabels: false 
+      xaxis: 
+        showline: false 
+        showgrid: false
+        showticklabels: false
+      showlegend: true
+      legend: 
+        orientation: h
+        xanchor: center
+        yanchor: bottom
+        x: .5 
+        y: 1.01
+      margin: 
+        r: 10
+        l: 10
+        b: 10
+
+dashboards:
+  - name: ohio-state
+    rows:
+      - height: compact
+        items: 
+          - markdown: |
+              # Ohio State Buckeyes
+              Comparing betting data to final scores for the 2024 season
+            justify: center 
+            align: center 
+      - height: small 
+        items: 
+          - chart: ${ref(percent-of-games-favored-chart)}
+          - chart: ${ref(percent-of-games-beat-spread-chart)}
+          - chart: ${ref(box-plots)}
+          - chart: ${ref(avg-victory-margin-chart)}
+          - chart: ${ref(avg-loss-margin-chart)}
+      - height: medium
+        items:
+          - width: 1
+            chart: ${ref(spreads-per-game-chart)}
